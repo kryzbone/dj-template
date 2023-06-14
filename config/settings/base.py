@@ -226,7 +226,7 @@ need to add it as a HTTP header to every HTTP request you send to the API.
 """
 
 
-API_BASE_URL = env.str("API_BASE_URL", "http://localhost:8000")
+# API_BASE_URL = env.str("API_BASE_URL", "http://localhost:8000")
 
 SWAGGER_SETTINGS = {
     "SECURITY_DEFINITIONS": {
@@ -237,7 +237,7 @@ SWAGGER_SETTINGS = {
             "name": "Authorization",
         }
     },
-    "DEFAULT_API_URL": API_BASE_URL,
+    # "DEFAULT_API_URL": API_BASE_URL,
 }
 
 

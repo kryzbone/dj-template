@@ -2,6 +2,7 @@ import pytest
 from pytest_factoryboy import register
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.common.utils import OTPUtils
 from apps.users.models import User
 from apps.users.tests.factories import UserFactory
 
@@ -26,6 +27,16 @@ def test_password():
 @pytest.fixture
 def user(test_password) -> User:
     return UserFactory(password=test_password)
+
+
+@pytest.fixture
+def otp_code(user):
+    return OTPUtils.generate_otp(user)
+
+
+@pytest.fixture
+def wrong_otp_token():
+    return OTPUtils.generate_token("hello")
 
 
 @pytest.fixture
