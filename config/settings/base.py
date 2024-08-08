@@ -188,6 +188,11 @@ REST_FRAMEWORK = {
         # "rest_framework.filters.OrderingFilter",
         "apps.common.utils.CustomOrderingFilter",
     ],
+    # "EXCEPTION_HANDLER": "apps.common.exception_handler.api_exception_handler",
+    # "DEFAULT_RENDERER_CLASSES": [
+    #     "apps.common.renderers.CustomRenderer",
+    #     "rest_framework.renderers.BrowsableAPIRenderer",
+    # ],
 }
 
 
