@@ -10,7 +10,6 @@ Template API with django
 $ python -m venv env
 $ source env/bin/activate for mac or env\scripts\activate for windows
 $ pip install -r requirements/local.txt
-$ pre-commit install
 $ pre-commit run --all-files
 ```
 
