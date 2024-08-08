@@ -1,7 +1,7 @@
 # Python Version 3.11
 # ----------------------------------------------
 Django==4.2.15
-djangorestframework==3.14.0
+djangorestframework==3.15.2
 djangorestframework-simplejwt==5.2.2
 django-filter==23.2
 django-cors-headers==4.0.0
