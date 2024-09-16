@@ -38,5 +38,6 @@ def send_email_template(
 
     if dynamic_template_data:
         msg.dynamic_template_data = dynamic_template_data
+        msg.merge_global_data = dynamic_template_data
 
     return msg.send(fail_silently=fail_silently)
