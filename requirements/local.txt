@@ -3,10 +3,10 @@
 
 -r base.txt
 
-psycopg2==2.9.6
-pytest-django==4.5.2
-pytest-factoryboy==2.5.1
-django-extensions==3.2.3
-django-debug-toolbar==4.1.0
+psycopg2-binary==2.9.10  # Use psycopg2-binary for easier installation
+pytest-django==4.9.0
+pytest-factoryboy==2.7.0
+django-extensions==3.2.6
+django-debug-toolbar==4.4.6
 nplusone==1.0.0
-pre-commit==3.3.2
+pre-commit==4.0.1

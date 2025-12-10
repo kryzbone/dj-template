@@ -3,9 +3,9 @@
 
 -r base.txt
 
-psycopg2==2.9.6
-gunicorn==22.0.0
-django-storages==1.13.2
-django-anymail==10.0
-whitenoise==6.0.0
+psycopg2-binary==2.9.10  # Use psycopg2-binary for easier installation
+gunicorn==23.0.0
+django-storages==1.14.4
+django-anymail==12.0
+whitenoise==6.8.2
 django-cloudinary-storage==0.3.0
