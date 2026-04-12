@@ -1,237 +1,308 @@
-# Django Template Project - Copilot Instructions
+# Django Template — AI Agent Instructions
 
-## Project Overview
-This is a Django REST API project template using Django 5.1+ with Django REST Framework. It provides user authentication, JWT tokens, and a modular app structure.
+This is a Django 5.1 REST API template using Django REST Framework. This file and the skill guides in `.ai/skills/` define the project's conventions. All AI agents (Copilot, Cursor, Claude, etc.) must follow these rules.
 
-> **Note**: This is a template project. The root folder name will vary based on the actual project name (e.g., `my-api-project`, `ecommerce-backend`, etc.). All references to "django-template" in this document should be understood as placeholders for the actual project name.
+> **Note**: This is a template. The project root folder name varies (e.g., `my-api`, `ecommerce-backend`). References to `django-template` are placeholders.
+
+---
+
+## Skills (Step-by-Step Guides)
+
+Read the relevant skill before implementing any feature:
+
+| Task | File |
+|------|------|
+| Create a new app/feature module | `.ai/skills/scaffold-app.md` |
+| Add a model | `.ai/skills/add-model.md` |
+| Add an API endpoint | `.ai/skills/add-endpoint.md` |
+| Add or fix a serializer | `.ai/skills/add-serializer.md` |
+| Write tests | `.ai/skills/write-tests.md` |
+
+---
 
 ## Technology Stack
-- **Backend**: Django 5.1.4, Django REST Framework 3.15.2
-- **Authentication**: djangorestframework-simplejwt 5.4.0
-- **Database**: SQLite (default), with support for other databases via django-environ
-- **API Documentation**: drf-yasg (Swagger/OpenAPI)
-- **Testing**: pytest with pytest-django and factory-boy
-- **Additional**: django-filter, django-cors-headers, pyotp, Pillow
 
-## Project Structure Conventions
+- Django 5.1.4 + Django REST Framework 3.15.2
+- JWT auth: `djangorestframework-simplejwt`
+- API docs: `drf-yasg` (Swagger/OpenAPI)
+- Filtering: `django-filter`
+- OTP: `pyotp`
+- Tests: `pytest-django` + `factory-boy`
+- Email: `django-anymail` (SendGrid in prod), console in dev
 
-### Directory Organization
+---
+
+## Project Structure
+
 ```
-<project-root>/                # Project name will vary (e.g., my-api-project/)
-├── apps/                      # All Django apps live here
-│   ├── common/               # Shared utilities, base models, permissions
-│   ├── users/                # User management app
-│   └── templates/            # Django templates
-├── config/                   # Project configuration
-│   ├── settings/             # Split settings (base, local, prod, test)
-│   ├── urls.py              # Main URL configuration
-│   └── api_urls.py          # API URL routing
-└── requirements/             # Split requirements files
+apps/                     ← ALL Django apps live here
+  common/                 ← Shared: BaseModel, permissions, utils, email, pagination
+  users/                  ← User model + auth endpoints
+  <your_app>/             ← Feature apps follow the same structure as users/
+config/
+  settings/
+    base.py               ← Shared settings
+    local.py              ← Dev overrides (debug toolbar, N+1 detection)
+    prod.py               ← Production (gunicorn, whitenoise, SSL)
+    test.py               ← Test overrides (in-memory email, tmpdir media)
+  urls.py                 ← Root URL config
+  api_urls.py             ← All API routes (app_name = "api")
+requirements/
+  base.txt                ← Core dependencies
+  local.txt               ← Dev dependencies
+  prod.txt                ← Production dependencies
+.ai/skills/               ← AI skill guides (read before implementing)
 ```
 
-### Apps Structure
-- **Location**: All apps MUST be in the `apps/` directory
-- **Registration**: Apps are registered in settings as `apps.appname.apps.AppnameConfig`
-- Each app should contain:
-  - `models.py` - Database models
-  - `views.py` - ViewSets and API views
-  - `serializers.py` - DRF serializers
-  - `urls.py` - App-specific URL routing
-  - `admin.py` - Django admin configuration
-  - `tests/` - Test directory with factories and test files
-  - `migrations/` - Database migrations
+---
 
-## Code Conventions
+## Non-Negotiable Rules
 
-### Models
-1. **Base Model**: All models MUST inherit from `apps.common.models.BaseModel`
-   - Provides: `id` (UUID primary key), `created_at`, `updated_at`, `is_active`
-   - UUID fields are used for primary keys, not auto-incrementing integers
-2. **User Model**: Custom user model at `apps.users.models.User`
-   - Uses email as USERNAME_FIELD (not username)
-   - Inherits from `AbstractBaseUser`, `PermissionsMixin`, and `BaseModel`
-   - Has custom `UserManager` for user creation
-3. **Soft Delete**: Use `deleted` field (Boolean) for soft deletes when needed
-4. **Ordering**: Default ordering should be specified in model Meta (e.g., `ordering = ("created_at",)`)
+### 1. Models MUST inherit from BaseModel
 
-### Views & ViewSets
-1. **ViewSets**: Prefer using DRF ViewSets with mixins for API endpoints
-   ```python
-   from rest_framework.viewsets import GenericViewSet
-   from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
-   ```
-2. **Generic Views**: Use `CreateAPIView`, `UpdateAPIView` for specific actions
-3. **Custom Actions**: Use `@action` decorator for custom endpoints
-4. **Documentation**: Use `@swagger_auto_schema` for API documentation
-5. **Permissions**: Set `permission_classes` explicitly on each view/viewset
-6. **Filtering**: Support `filterset_fields` and `search_fields` on viewsets
-7. **Authentication**: Default authentication is JWT via `IsAuthenticated` permission
+```python
+# CORRECT
+from apps.common.models import BaseModel
 
-### Serializers
-1. **Naming**: Serializers should end with `Serializer` (e.g., `UserSerializer`)
-2. **Response Serializers**: Create separate response serializers when needed (e.g., `SignupResponseSerializer`)
-3. **Validation**: Custom validation methods should follow pattern `validate_<field_name>`
-4. **Password Fields**: Always use `write_only=True` for password fields
-5. **Swagger Documentation**: Use `@swagger_serializer_method` for custom SerializerMethodFields
+class Product(BaseModel):
+    name = models.CharField(max_length=255)
 
-### URLs
-1. **API URLs**: API endpoints are routed through `config/api_urls.py`
-2. **Routers**: Use `DefaultRouter` for ViewSet registration
-3. **Namespacing**: API URLs use `app_name = "api"` namespace
-4. **URL Names**: Follow pattern: `<app>-<action>` (e.g., `users-list`, `users-detail`)
+# WRONG — never do this
+class Product(models.Model):
+    id = models.UUIDField(...)  # don't redefine what BaseModel provides
+    name = models.CharField(max_length=255)
+```
 
-### Testing
-1. **Framework**: Use pytest with `pytest-django`
-2. **Fixtures**: Define fixtures in `apps/conftest.py` and app-specific `conftest.py`
-3. **Factories**: Use factory-boy for model factories in `tests/factories.py`
-4. **Markers**: Use `pytestmark = pytest.mark.django_db` for database tests
-5. **API Testing**: Use `APIClient` or custom `api_client_auth` fixture
-6. **Test Structure**: Organize tests in classes (e.g., `TestUserView`)
-7. **Naming**: Test methods should start with `test_` and describe the scenario
+BaseModel provides: `id` (UUID PK), `created_at`, `updated_at`, `is_active`, `activate()`, `deactivate()`.
 
-### Authentication & Security
-1. **JWT Tokens**: Use SimpleJWT for token authentication
-2. **OTP**: Use `apps.common.utils.OTPUtils` for OTP generation and verification
-3. **Password Reset Flow**: 
-   - Generate OTP code and token
-   - Send email with code
-   - Verify using token and code
-4. **Permissions**: Custom permissions in `apps.common.permissions.py`
-5. **Email**: Email utility in `apps.common.email.py`
+### 2. Apps MUST live in `apps/`
 
-### Settings
-1. **Split Settings**: Use environment-based settings (base, local, prod, test)
-2. **Environment Variables**: Use `django-environ` for configuration
-3. **Settings Structure**:
-   - `DJANGO_APPS` - Core Django apps
-   - `THIRD_PARTY_APPS` - External packages
-   - `LOCAL_APPS` - Project apps
-   - `INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS`
-4. **Database**: Use `env.db()` for database configuration
-5. **Paths**: Use `BASE_DIR` and `APPS_DIR` for path construction
+```bash
+# Create a new app
+python manage.py startapp products apps/products
 
-### REST Framework Configuration
-1. **Pagination**: Use `apps.common.pagination.DefaultPagination` (20 items per page)
-2. **Filtering**: Enable DjangoFilterBackend, SearchFilter, and CustomOrderingFilter
-3. **Authentication**: JWT via `rest_framework_simplejwt.authentication.JWTAuthentication`
-4. **Permissions**: Default is `IsAuthenticated`
+# Register in config/settings/base.py
+LOCAL_APPS = [
+    "apps.users.apps.UsersConfig",
+    "apps.common",
+    "apps.products.apps.ProductsConfig",  # add here
+]
+```
+
+### 3. Views MUST have explicit permission_classes
+
+```python
+# CORRECT
+class ProductView(ListModelMixin, GenericViewSet):
+    permission_classes = [IsAuthenticated]
+
+# WRONG — never rely on global defaults
+class ProductView(ListModelMixin, GenericViewSet):
+    pass
+```
+
+### 4. Password fields MUST be write_only
+
+```python
+# CORRECT
+password = serializers.CharField(min_length=6, write_only=True)
+
+# WRONG
+password = serializers.CharField(min_length=6)
+```
+
+### 5. API URLs MUST go through `config/api_urls.py`
+
+```python
+# config/api_urls.py
+app_name = "api"
+urlpatterns = [
+    path("", include("apps.users.urls")),
+    path("", include("apps.products.urls")),  # add here
+]
+```
+
+---
+
+## Standard ViewSet Pattern
+
+```python
+from rest_framework.mixins import (
+    CreateModelMixin, DestroyModelMixin,
+    ListModelMixin, RetrieveModelMixin, UpdateModelMixin,
+)
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import GenericViewSet
+
+from .models import Product
+from .serializers import ProductSerializer, ProductWriteSerializer
+
+
+class ProductView(
+    CreateModelMixin,    # POST   /api/products/
+    RetrieveModelMixin,  # GET    /api/products/<id>/
+    UpdateModelMixin,    # PATCH  /api/products/<id>/
+    DestroyModelMixin,   # DELETE /api/products/<id>/
+    ListModelMixin,      # GET    /api/products/
+    GenericViewSet,
+):
+    queryset = Product.objects.filter(is_active=True)
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ["is_active", "status"]
+    search_fields = ["name", "description"]
+    ordering_fields = ["created_at", "price"]
+
+    def get_serializer_class(self):
+        if self.action in ("create", "update", "partial_update"):
+            return ProductWriteSerializer
+        return ProductSerializer
+
+    def get_queryset(self):
+        return self.queryset.filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+```
+
+---
+
+## Standard Serializer Patterns
+
+```python
+from rest_framework import serializers
+from .models import Product
+
+
+# READ serializer
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ["id", "name", "price", "status", "is_active", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+# WRITE serializer (different fields for input)
+class ProductWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ["name", "price", "status"]
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Price must be positive.")
+        return value
+```
+
+---
+
+## Standard URL Pattern
+
+```python
+# apps/products/urls.py
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+from .views import ProductView
+
+router = DefaultRouter()
+router.register("products", ProductView, basename="products")
+
+urlpatterns = [
+    path("", include(router.urls)),
+]
+```
+
+Auto-generated URL names:
+- `api:products-list` → `GET /api/products/`
+- `api:products-detail` → `GET/PATCH/DELETE /api/products/<id>/`
+
+---
+
+## Standard Test Pattern
+
+```python
+# apps/products/tests/test_views.py
+import pytest
+from django.urls import reverse
+from rest_framework import status
+from apps.products.tests.factories import ProductFactory
+
+pytestmark = pytest.mark.django_db
+
+
+class TestProductView:
+    def test_list(self, api_client_auth, user):
+        ProductFactory.create_batch(3)
+        client = api_client_auth(user)
+
+        resp = client.get(reverse("api:products-list"))
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert "results" in resp.json()
+
+    def test_create(self, api_client_auth, user):
+        client = api_client_auth(user)
+
+        resp = client.post(reverse("api:products-list"), {"name": "Widget", "price": "9.99"})
+
+        assert resp.status_code == status.HTTP_201_CREATED
+
+    def test_unauthenticated(self, api_client):
+        resp = api_client.get(reverse("api:products-list"))
+
+        assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+```
+
+---
 
 ## Common Utilities
 
-### BaseModel Methods
-- `activate()` - Set is_active to True
-- `deactivate()` - Set is_active to False
-- UUID primary keys automatically generated
-
-### OTPUtils Class
-- `generate_otp(user, life=600)` - Generate OTP code and token
-- `verify_otp(code, secret, life=600)` - Verify OTP code
-- `generate_token(data)` - Generate base32 encoded token
-- `decode_token(token)` - Decode token to extract data
-
-### CustomOrderingFilter
-- Extends DRF's OrderingFilter with better schema documentation
-- Use with `ordering_fields` on viewsets
-
-## API Patterns
-
-### Standard CRUD ViewSet Pattern
 ```python
-class MyModelView(RetrieveModelMixin, UpdateModelMixin, ListModelMixin, GenericViewSet):
-    serializer_class = MyModelSerializer
-    queryset = MyModel.objects.all()
-    filterset_fields = ["field1", "field2"]
-    search_fields = ["field1", "field2"]
-    ordering_fields = ["created_at", "updated_at"]
+# OTP
+from apps.common.utils import OTPUtils
+code, token = OTPUtils.generate_otp(user, life=600)
+OTPUtils.verify_otp(code, secret, life=600)
+
+# Email
+from apps.common.email import send_email
+send_email(to_email="user@example.com", subject="Subject", message="Body")
+
+# Pagination
+from apps.common.pagination import DefaultPagination  # 20/page
+from apps.common.pagination import LargePagination    # 1000/page
 ```
 
-### Custom Action Pattern
-```python
-@swagger_auto_schema(method="GET", responses={200: MySerializer})
-@action(detail=False, methods=["GET"])
-def custom_endpoint(self, request):
-    # Implementation
-    return Response(data, status=status.HTTP_200_OK)
+---
+
+## Response Format
+
+`CustomRenderer` wraps all responses:
+- Success: `{"data": {...}, "error": null}`
+- Error: `{"data": null, "error": {"status_code": 400, "message": "...", "details": []}}`
+
+---
+
+## Auth Endpoints (already implemented)
+
+```
+POST /api/auth/signup/          → Register (AllowAny)
+POST /api/auth/login/           → JWT login (AllowAny)
+POST /api/auth/refresh-token/   → Refresh access token (AllowAny)
+POST /api/auth/forget-password/ → Request OTP reset (AllowAny)
+POST /api/auth/reset-password/  → Reset with OTP (AllowAny)
+POST /api/auth/change-password/ → Change password (IsAuthenticated)
+GET  /api/users/me/             → Current user profile (IsAuthenticated)
 ```
 
-### Authentication Endpoints Pattern
-- `auth/signup/` - User registration
-- `auth/login/` - Token obtain (JWT)
-- `auth/refresh-token/` - Token refresh
-- `auth/forget-password/` - Initiate password reset
-- `auth/reset-password/` - Complete password reset
-- `auth/change-password/` - Change password for authenticated users
+---
 
-## Development Workflow
+## Dev Commands
 
-### Creating New Apps
-1. Create app in `apps/` directory: `python manage.py startapp appname apps/appname`
-2. Add `apps.appname.apps.AppnameConfig` to `LOCAL_APPS` in settings
-3. Create models inheriting from `BaseModel`
-4. Create serializers, views, and URL routing
-5. Write tests with factories
-6. Register in admin if needed
-
-### Adding New Models
-1. Inherit from `apps.common.models.BaseModel`
-2. Use UUID for primary keys (inherited)
-3. Include `created_at`, `updated_at`, `is_active` (inherited)
-4. Add soft delete with `deleted = models.BooleanField(default=False)` if needed
-5. Define `__str__` method
-6. Set Meta options (ordering, verbose_name, etc.)
-7. Run migrations: `python manage.py makemigrations && python manage.py migrate`
-
-### Adding API Endpoints
-1. Create serializer in `serializers.py`
-2. Create view/viewset in `views.py` with swagger documentation
-3. Register in `urls.py` using router or path
-4. Include app URLs in `config/api_urls.py`
-5. Write tests in `tests/test_views.py`
-
-### Writing Tests
-1. Create factory in `tests/factories.py`
-2. Register factory in `conftest.py` with `pytest-factoryboy`
-3. Write test class in `tests/test_*.py`
-4. Use fixtures for common setup (user, auth client, etc.)
-5. Test all CRUD operations and edge cases
-
-## Important Notes
-
-### DO's
-- ✅ Always inherit models from `BaseModel`
-- ✅ Use UUID primary keys (via BaseModel)
-- ✅ Use email for user authentication (not username)
-- ✅ Document APIs with `@swagger_auto_schema`
-- ✅ Write tests for all new features
-- ✅ Use factories for test data
-- ✅ Use environment variables for configuration
-- ✅ Split requirements by environment
-- ✅ Use ViewSets with mixins for standard CRUD
-- ✅ Set explicit permission classes on views
-
-### DON'Ts
-- ❌ Don't use auto-incrementing integer primary keys
-- ❌ Don't create apps outside `apps/` directory
-- ❌ Don't use username field (use email)
-- ❌ Don't expose passwords in serializer responses
-- ❌ Don't forget `write_only=True` on password fields
-- ❌ Don't skip tests
-- ❌ Don't hardcode configuration values
-- ❌ Don't forget to register new apps in settings
-
-## Git Workflow
-- Main branch: `main` (production-ready)
-- Development branch: `dev` (integration branch)
-- Create feature branches from `dev`
-- Create PR back to `dev` branch
-- Use pre-commit hooks (configured in project)
-
-## Commands Reference
 ```bash
 # Setup
 python -m venv env
-source env/bin/activate  # Mac/Linux
-env\scripts\activate     # Windows
+source env/bin/activate        # Mac/Linux
+env\scripts\activate           # Windows
 pip install -r requirements/local.txt
 
 # Database
@@ -239,20 +310,37 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
 
-# Run
+# Run server
 python manage.py runserver
 
 # Tests
-pytest
-pytest apps/appname/tests/
-pytest -v  # Verbose
-pytest -k test_name  # Run specific test
+pytest                                      # All tests
+pytest apps/<appname>/                      # Single app
+pytest -v                                   # Verbose
+pytest -k "test_name"                       # Specific test
+pytest --reuse-db                           # Reuse test DB (faster)
 ```
 
-## File Naming Conventions
-- Models: Singular, PascalCase (e.g., `User`, `BlogPost`)
-- Views: PascalCase with suffix (e.g., `UserView`, `SignUpView`)
-- Serializers: PascalCase with `Serializer` suffix
-- Factories: PascalCase with `Factory` suffix
-- Test files: `test_*.py` (e.g., `test_views.py`, `test_models.py`)
-- URL names: lowercase with hyphens (e.g., `user-list`, `token-obtain`)
+---
+
+## DO's and DON'Ts
+
+### DO
+- Inherit all models from `BaseModel`
+- Put all apps in `apps/`
+- Set `permission_classes` explicitly on every view
+- Use `write_only=True` on all password fields
+- Use `get_serializer_class()` for separate read/write serializers
+- Scope querysets in `get_queryset()` to the current user
+- Document all endpoints with `@swagger_auto_schema`
+- Write tests for every endpoint
+- Use factories for test data
+
+### DON'T
+- Define `id`, `created_at`, `updated_at` manually (inherited)
+- Use auto-increment integer PKs
+- Use `username` field (use `email`)
+- Create apps outside `apps/` directory
+- Expose passwords in serializer output
+- Hardcode secrets — use environment variables
+- Skip tests

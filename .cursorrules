@@ -1,0 +1,99 @@
+# Django Template — Cursor Rules
+
+This is a Django 5.1 REST API project. Follow all conventions in `.ai/skills/` when implementing features.
+
+## Project Structure
+
+```
+apps/           ← All Django apps (NEVER create apps outside this directory)
+  common/       ← BaseModel, permissions, utils, email helpers, pagination
+  users/        ← User model, JWT auth endpoints
+config/
+  settings/     ← base.py, local.py, prod.py, test.py
+  api_urls.py   ← All API routes (namespace: "api")
+.ai/skills/     ← Step-by-step guides for all common tasks (READ THESE)
+```
+
+## Skills Reference
+
+Before implementing any feature, read the relevant skill file:
+
+- **New feature module** → `.ai/skills/scaffold-app.md`
+- **New model** → `.ai/skills/add-model.md`
+- **New API endpoint** → `.ai/skills/add-endpoint.md`
+- **New/fix serializer** → `.ai/skills/add-serializer.md`
+- **Write tests** → `.ai/skills/write-tests.md`
+
+## Critical Rules
+
+### Models
+- ALWAYS inherit from `apps.common.models.BaseModel` — NEVER from `models.Model`
+- NEVER define `id`, `created_at`, `updated_at` — they are inherited from BaseModel
+- ALWAYS define `__str__` and `ordering` in Meta
+- Use `gettext_lazy` for all user-visible strings
+
+### Apps
+- ALL apps go in `apps/` directory
+- Register as `apps.<name>.apps.<Name>Config` in `LOCAL_APPS` (settings/base.py)
+
+### Views
+- ALWAYS set `permission_classes` explicitly on every view
+- Use `GenericViewSet` + mixins — only include mixins for operations you actually support
+- Use `get_serializer_class()` for different read vs write serializers
+- Scope querysets in `get_queryset()` — don't expose other users' data
+- Document every endpoint with `@swagger_auto_schema`
+
+### Serializers
+- ALWAYS use `write_only=True` on password fields
+- Include `id`, `created_at`, `updated_at` in `read_only_fields` on read serializers
+- Use `validate_<field>()` for single-field validation
+- Use `validate()` for cross-field validation
+
+### URLs
+- API URLs go in `config/api_urls.py` (namespace `"api"`)
+- Use `DefaultRouter` for ViewSets
+- URL names follow `api:<basename>-<action>` pattern
+
+### Tests
+- Tests go in `apps/<appname>/tests/`
+- Use `pytestmark = pytest.mark.django_db` at file level
+- Use factories (factory-boy) for test data
+- Test every endpoint: success, validation failure, unauthenticated access
+
+## Key Imports Reference
+
+```python
+# Base model
+from apps.common.models import BaseModel
+
+# Permissions
+from apps.common.permissions import IsOwner
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
+# Pagination
+from apps.common.pagination import DefaultPagination, LargePagination
+
+# Utilities
+from apps.common.utils import OTPUtils
+from apps.common.email import send_email, send_email_template
+
+# Views
+from rest_framework.generics import CreateAPIView
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin
+from rest_framework.viewsets import GenericViewSet
+
+# Serializers
+from rest_framework import serializers
+from drf_yasg.utils import swagger_auto_schema, swagger_serializer_method
+```
+
+## Response Format
+
+All responses are wrapped by `CustomRenderer`:
+- Success: `{"data": {...}, "error": null}`
+- Error: `{"data": null, "error": {...}}`
+
+## JWT Auth
+
+- Header: `Authorization: Bearer <access_token>`
+- Login: `POST /api/auth/login/` with `{"email": "...", "password": "..."}`
